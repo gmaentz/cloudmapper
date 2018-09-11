@@ -1,0 +1,64 @@
+{
+    "variables": {
+		"aws_region": "us-west-2",
+        "ami_id": "ami-6cd6f714",
+        "python_version": "3.5.6",
+        "aws_id": "AWSID",
+        "aws_account": "Default"
+    },
+    "builders": [
+        {
+            "type": "amazon-ebs",
+            "region": "{{user `aws_region`}}",
+            "source_ami": "{{user `ami_id`}}",
+            "instance_type": "t2.micro",
+            "ssh_username": "ec2-user",
+            "ami_name": "CloudMapper-Python-{{user `python_version` | clean_ami_name}}-Date-{{isotime | clean_ami_name}}",
+            "ami_description": "DUO CloudMapper AMI - Python:{{user `python_version` | clean_ami_name}}",
+            "tags": {
+                "name": "CloudMapper",
+                "role": "CloudMapper"
+            },
+            "run_tags":{
+                "role": "buildSystem"
+            }
+        }
+    ],
+	"provisioners": [
+		{
+			"type": "shell",
+			"inline": [
+				"echo '**** Installing Python' ",
+                "wget https://www.python.org/ftp/python/{{user `python_version`}}/Python-{{user `python_version`}}.tgz",
+                "tar zxvf Python-{{user `python_version`}}.tgz",
+                "cd Python-{{user `python_version`}}",
+				"sudo yum -y install gcc",
+				"./configure --prefix=/opt/python3",
+				"make",
+                "sudo yum -y install openssl-devel",
+                "sudo make install",
+                "sudo ln -s /opt/python3/bin/python3 /usr/bin/python3"
+			]
+        },
+        {
+			"type": "shell",
+			"inline": [
+				"echo '**** Installing Duo CloudMapper Dependencies' ",
+                "sudo yum -y install autoconf automake libtool python3-dev jq git",
+                "sudo easy_install pip"
+			]
+        },
+        {
+			"type": "shell",
+			"inline": [
+				"echo '**** Installing Duo CloudMapper' ",
+                "cd ~", 
+                "git clone https://github.com/duo-labs/cloudmapper.git",
+                "cd ~/cloudmapper", 
+                "sudo pip install pipenv",
+                "pipenv --three",
+                "pipenv install"
+			]
+        }
+    ]
+}
